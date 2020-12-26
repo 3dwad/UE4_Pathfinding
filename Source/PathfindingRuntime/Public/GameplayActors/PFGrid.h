@@ -30,17 +30,23 @@ public:
 	FVector GetGridBottomLeft() const;
 	void GetGridTileNumber(int32& OutGridTileNumberX, int32& OutGridTileNumberY) const;
 	void DrawTile();
+
+	// Find ground under tile
+	bool TraceForGroundDetection(const FVector& TileLocation) const;
 public:
 
-	UPROPERTY(VisibleAnywhere, Category="Settings")
+	UPROPERTY(EditInstanceOnly, Category="Settings")
 	FVector GridLocation;
 
-	UPROPERTY(VisibleAnywhere, Category="Settings")
+	UPROPERTY(EditInstanceOnly, Category="Settings")
 	FVector2D GridSizeWorld{500.f, 500.f};
 
-	UPROPERTY(VisibleAnywhere, Category="Settings")
+	UPROPERTY(EditInstanceOnly, Category="Settings")
 	float TileSize{50.f};
 
-	UPROPERTY(VisibleAnywhere, Category="Debug")
+	UPROPERTY(EditInstanceOnly, Category="Settings")
+	float TileSizeMinus{5.f};
+
+	UPROPERTY(EditInstanceOnly, Category="Debug")
 	FColor GridBoxColor{FColor::Blue};
 };

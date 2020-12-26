@@ -57,34 +57,38 @@ void APFGrid::DrawTile()
 			FVector OffsetByX = SceneRoot->GetRightVector() * (TileSize * 2 * IndexByX + TileSize);
 			FVector TilePosition = GetGridBottomLeft() + OffsetByX + OffsetByY;
 
-			// Find ground under plane
-			const ETraceTypeQuery GroundTypeQuery = UEngineTypes::ConvertToTraceType(GROUND_COLLISION_CHANNEL);
-			FHitResult TraceResult;
-			const bool bTraceSuccessfully = UKismetSystemLibrary::SphereTraceSingle
-			(
-				GetWorld(),
-				TilePosition,
-				TilePosition,
-				TileSize - 5,
-				GroundTypeQuery,
-				false,
-				TArray<AActor*>{},
-				EDrawDebugTrace::ForDuration,
-				TraceResult,
-				true,
-				FLinearColor::Red,
-				FLinearColor::Green,
-				20.f
-			);
-
-			// Create grid if ground was detected
-			if (bTraceSuccessfully)
+			// Draw tile if ground was detected
+			if (TraceForGroundDetection(TilePosition))
 			{
 				FPlane GridPlane = FPlane(0.f, 0.f, 1.f, GridLocation.Z);
-				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - 5, FColor::Orange, false, 600.f);
+				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - TileSizeMinus, FColor::Orange, false, 600.f);
 			}
 		}
 	}
+}
+
+bool APFGrid::TraceForGroundDetection(const FVector& TileLocation) const
+{
+	const ETraceTypeQuery GroundTypeQuery = UEngineTypes::ConvertToTraceType(GROUND_COLLISION_CHANNEL);
+	FHitResult TraceResult;
+	const bool bTraceSuccessfully = UKismetSystemLibrary::SphereTraceSingle
+	(
+		GetWorld(),
+		TileLocation,
+		TileLocation,
+		TileSize - TileSizeMinus,
+		GroundTypeQuery,
+		false,
+		TArray<AActor*>{},
+		EDrawDebugTrace::ForDuration,
+		TraceResult,
+		true,
+		FLinearColor::Red,
+		FLinearColor::Green,
+		20.f
+	);
+
+	return bTraceSuccessfully;
 }
 
 void APFGrid::Tick(float DeltaTime)
