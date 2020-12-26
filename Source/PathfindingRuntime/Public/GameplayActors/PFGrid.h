@@ -20,10 +20,12 @@ public:
 	UBillboardComponent* Billboard;
 
 	//	AActor interfaces start
-	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
 	//	AActor interfaces end
+
+	UFUNCTION(BlueprintCallable, Category="Construction")
+	void ConstructionScriptLogic();
 
 	FVector GetGridBottomLeft() const;
 	void GetGridTileNumber(int32& OutGridTileNumberX, int32& OutGridTileNumberY) const;
