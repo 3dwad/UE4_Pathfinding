@@ -1,11 +1,12 @@
 #include "PFGrid.h"
+#include "PFObstacleMaster.h"
 
 #include "DrawDebugHelpers.h"
 #include "Components/BillboardComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-#define GROUND_COLLISION_CHANNEL ECC_GameTraceChannel11
-#define OBSTACLE_COLLISION_CHANNEL ECC_GameTraceChannel12
+#define GROUND_COLLISION_CHANNEL ECC_GameTraceChannel1
+#define OBSTACLE_COLLISION_CHANNEL ECC_GameTraceChannel2
 
 APFGrid::APFGrid()
 {
@@ -57,19 +58,46 @@ void APFGrid::DrawTile()
 			FVector OffsetByX = SceneRoot->GetRightVector() * (TileSize * 2 * IndexByX + TileSize);
 			FVector TilePosition = GetGridBottomLeft() + OffsetByX + OffsetByY;
 
-			// Draw tile if ground was detected
-			if (TraceForGroundDetection(TilePosition))
+			EObstacleType ObstacleType = OT_Normal;
+			FColor TileColor = FColor::Green;
+
+			// Skip if ground not detected
+			if (!SphereTileTrace(TilePosition, GROUND_COLLISION_CHANNEL, ObstacleType))
+				continue;
+
+			// Draw obstacle tile
+			if (SphereTileTrace(TilePosition, OBSTACLE_COLLISION_CHANNEL, ObstacleType))
+			{
+				switch (ObstacleType)
+				{
+				case OT_Complicated:
+					TileColor = FColor::Yellow;
+					break;
+				case OT_Difficult:
+					TileColor = FColor::Orange;
+					break;
+				case OT_Impassable:
+					TileColor = FColor::Red;
+					break;
+				default: ;
+				}
+
+				FPlane GridPlane = FPlane(0.f, 0.f, 1.f, GridLocation.Z);
+				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - TileSizeMinus, TileColor, false, 600.f);
+			}
+				// Draw free tile
+			else
 			{
 				FPlane GridPlane = FPlane(0.f, 0.f, 1.f, GridLocation.Z);
-				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - TileSizeMinus, FColor::Orange, false, 600.f);
+				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - TileSizeMinus, TileColor, false, 600.f);
 			}
 		}
 	}
 }
 
-bool APFGrid::TraceForGroundDetection(const FVector& TileLocation) const
+bool APFGrid::SphereTileTrace(const FVector& TileLocation, const ECollisionChannel& InCollisionChannel, EObstacleType& OutObstacleType)
 {
-	const ETraceTypeQuery GroundTypeQuery = UEngineTypes::ConvertToTraceType(GROUND_COLLISION_CHANNEL);
+	const ETraceTypeQuery GroundTypeQuery = UEngineTypes::ConvertToTraceType(InCollisionChannel);
 	FHitResult TraceResult;
 	const bool bTraceSuccessfully = UKismetSystemLibrary::SphereTraceSingle
 	(
@@ -88,7 +116,18 @@ bool APFGrid::TraceForGroundDetection(const FVector& TileLocation) const
 		20.f
 	);
 
+	OutObstacleType = GetObstacleType(TraceResult.Actor);
 	return bTraceSuccessfully;
+}
+
+EObstacleType APFGrid::GetObstacleType(const TWeakObjectPtr<AActor>& InActor) const
+{
+	EObstacleType ObstacleTypeResult = OT_Normal;
+
+	if (const auto ObstacleActor = Cast<APFObstacleMaster>(InActor))
+		ObstacleTypeResult = ObstacleActor->ObstacleType;
+
+	return ObstacleTypeResult;
 }
 
 void APFGrid::Tick(float DeltaTime)

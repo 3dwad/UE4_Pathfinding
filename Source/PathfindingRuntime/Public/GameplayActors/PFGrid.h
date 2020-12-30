@@ -5,6 +5,8 @@
 #include "GameFramework/Actor.h"
 #include "PFGrid.generated.h"
 
+enum EObstacleType;
+
 UCLASS()
 class PATHFINDINGRUNTIME_API APFGrid : public AActor
 {
@@ -32,7 +34,9 @@ public:
 	void DrawTile();
 
 	// Find ground under tile
-	bool TraceForGroundDetection(const FVector& TileLocation) const;
+	bool SphereTileTrace(const FVector& TileLocation, const ECollisionChannel& InCollisionChannel, EObstacleType& OutObstacleType);
+
+	EObstacleType GetObstacleType(const TWeakObjectPtr<AActor>& InActor) const;
 public:
 
 	UPROPERTY(EditInstanceOnly, Category="Settings")
