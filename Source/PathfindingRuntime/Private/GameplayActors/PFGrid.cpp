@@ -1,12 +1,10 @@
 #include "PFGrid.h"
+#include "PathfindingRuntime/PathfindingRuntime.h"
 #include "PFObstacleMaster.h"
 
 #include "DrawDebugHelpers.h"
 #include "Components/BillboardComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-
-#define GROUND_COLLISION_CHANNEL ECC_GameTraceChannel1
-#define OBSTACLE_COLLISION_CHANNEL ECC_GameTraceChannel2
 
 APFGrid::APFGrid()
 {
@@ -62,11 +60,11 @@ void APFGrid::DrawTile()
 			FColor TileColor = FColor::Green;
 
 			// Skip if ground not detected
-			if (!SphereTileTrace(TilePosition, GROUND_COLLISION_CHANNEL, ObstacleType))
+			if (!SphereTileTrace(TilePosition, PathfindingGlobal::GroundCollisionChannel, ObstacleType))
 				continue;
 
 			// Draw obstacle tile
-			if (SphereTileTrace(TilePosition, OBSTACLE_COLLISION_CHANNEL, ObstacleType))
+			if (SphereTileTrace(TilePosition, PathfindingGlobal::ObstacleCollisionChannel, ObstacleType))
 			{
 				switch (ObstacleType)
 				{
