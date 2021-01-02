@@ -25,15 +25,16 @@ void APFGrid::BeginPlay()
 void APFGrid::ConstructionScriptLogic()
 {
 	FlushPersistentDebugLines(GetWorld());
-	GridLocation = SceneRoot->GetComponentLocation();
-	DrawDebugBox(GetWorld(), GridLocation, FVector(GridSizeWorld.Y, GridSizeWorld.X, 5.f), GridBoxColor, false, 600.f, SDPG_World, 10);
+	GridWorldLocation = SceneRoot->GetComponentLocation();
+	DrawDebugBox(GetWorld(), GridWorldLocation, FVector(GridSizeWorld.Y, GridSizeWorld.X, 5.f), GridBoxColor, false, 600.f, SDPG_World, 10);
 	DrawDebugSphere(GetWorld(), GetGridBottomLeft(), 30.f, 5, FColor::Red, false, 600.f, SDPG_World, 4);
+	GenerateMapDataFromWorld();
 	DrawTile();
 }
 
 FVector APFGrid::GetGridBottomLeft() const
 {
-	return GridLocation - (SceneRoot->GetRightVector() * GridSizeWorld.X) - (SceneRoot->GetForwardVector() * GridSizeWorld.Y);
+	return GridWorldLocation - (SceneRoot->GetRightVector() * GridSizeWorld.X) - (SceneRoot->GetForwardVector() * GridSizeWorld.Y);
 }
 
 void APFGrid::GetGridTileNumber(int32& OutGridTileNumberX, int32& OutGridTileNumberY) const
@@ -44,52 +45,29 @@ void APFGrid::GetGridTileNumber(int32& OutGridTileNumberX, int32& OutGridTileNum
 
 void APFGrid::DrawTile()
 {
-	int32 TilesByX = 0;
-	int32 TilesByY = 0;
-	GetGridTileNumber(TilesByX, TilesByY);
-
-	for (int IndexByX = 0; IndexByX < TilesByX; ++IndexByX)
+	for (auto Element : Tiles)
 	{
-		for (int IndexByY = 0; IndexByY < TilesByY; ++IndexByY)
+		FColor TileColor = FColor::Green;
+
+		switch (Element.Value.ObstacleType)
 		{
-			FVector OffsetByY = SceneRoot->GetForwardVector() * (TileSize * 2 * IndexByY + TileSize);
-			FVector OffsetByX = SceneRoot->GetRightVector() * (TileSize * 2 * IndexByX + TileSize);
-			FVector TilePosition = GetGridBottomLeft() + OffsetByX + OffsetByY;
-
-			EObstacleType ObstacleType = OT_Normal;
-			FColor TileColor = FColor::Green;
-
-			// Skip if ground not detected
-			if (!SphereTileTrace(TilePosition, PathfindingGlobal::GroundCollisionChannel, ObstacleType))
-				continue;
-
-			// Draw obstacle tile
-			if (SphereTileTrace(TilePosition, PathfindingGlobal::ObstacleCollisionChannel, ObstacleType))
-			{
-				switch (ObstacleType)
-				{
-				case OT_Complicated:
-					TileColor = FColor::Yellow;
-					break;
-				case OT_Difficult:
-					TileColor = FColor::Orange;
-					break;
-				case OT_Impassable:
-					TileColor = FColor::Red;
-					break;
-				default: ;
-				}
-
-				FPlane GridPlane = FPlane(0.f, 0.f, 1.f, GridLocation.Z);
-				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - TileSizeMinus, TileColor, false, 600.f);
-			}
-				// Draw free tile
-			else
-			{
-				FPlane GridPlane = FPlane(0.f, 0.f, 1.f, GridLocation.Z);
-				DrawDebugSolidPlane(GetWorld(), GridPlane, TilePosition, TileSize - TileSizeMinus, TileColor, false, 600.f);
-			}
+		case OT_Complicated:
+			TileColor = FColor::Yellow;
+			break;
+		case OT_Difficult:
+			TileColor = FColor::Orange;
+			break;
+		case OT_Impassable:
+			TileColor = FColor::Red;
+			break;
+		case OT_None:
+			TileColor = FColor::Silver;
+			break;
+		default: ;
 		}
+
+		FPlane GridPlane = FPlane(0.f, 0.f, 1.f, GridWorldLocation.Z);
+		DrawDebugSolidPlane(GetWorld(), GridPlane, Element.Value.WorldLocation, TileSize - TileSizeMinus, TileColor, false, 600.f);
 	}
 }
 
@@ -131,4 +109,51 @@ EObstacleType APFGrid::GetObstacleType(const TWeakObjectPtr<AActor>& InActor) co
 void APFGrid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void APFGrid::GenerateMapDataFromWorld()
+{
+	Tiles.Empty();
+
+	int32 TilesByX = 0;
+	int32 TilesByY = 0;
+	GetGridTileNumber(TilesByX, TilesByY);
+
+	for (int IndexByX = 0; IndexByX < TilesByX; ++IndexByX)
+	{
+		for (int IndexByY = 0; IndexByY < TilesByY; ++IndexByY)
+		{
+			FVector OffsetByY = SceneRoot->GetForwardVector() * (TileSize * 2 * IndexByY + TileSize);
+			FVector OffsetByX = SceneRoot->GetRightVector() * (TileSize * 2 * IndexByX + TileSize);
+			FVector TilePosition = GetGridBottomLeft() + OffsetByX + OffsetByY;
+
+			EObstacleType ObstacleType = OT_Normal;
+
+			// Add tile without ground
+			if (!SphereTileTrace(TilePosition, PathfindingGlobal::GroundCollisionChannel, ObstacleType))
+			{
+				AddTileStruct(IndexByX, IndexByY, OT_None, TilePosition);
+				continue;
+			}
+
+			// Add tile with obstacle 
+			if (SphereTileTrace(TilePosition, PathfindingGlobal::ObstacleCollisionChannel, ObstacleType))
+				AddTileStruct(IndexByX, IndexByY, ObstacleType, TilePosition);
+
+				// Add tile without obstacle
+			else
+				AddTileStruct(IndexByX, IndexByY, OT_Normal, TilePosition);
+		}
+	}
+}
+
+void APFGrid::AddTileStruct(const int32& InIndexByX, const int32& InIndexByY, const EObstacleType& InObstacleType, const FVector& InWorldLocation)
+{
+	const FVector2D CurrentTileIndex{static_cast<float>(InIndexByX), static_cast<float>(InIndexByY)};
+
+	FTileInfo CurrentTileInfo;
+	CurrentTileInfo.Index = CurrentTileIndex;
+	CurrentTileInfo.ObstacleType = InObstacleType;
+	CurrentTileInfo.WorldLocation = InWorldLocation;
+	Tiles.Add(CurrentTileIndex, CurrentTileInfo);
 }
