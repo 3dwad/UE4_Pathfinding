@@ -7,6 +7,16 @@
 
 enum EObstacleType;
 
+USTRUCT()
+struct FTileInfo
+{
+	GENERATED_BODY()
+
+	FVector2D Index;
+	FVector WorldLocation;
+	EObstacleType ObstacleType;
+};
+
 UCLASS()
 class PATHFINDINGRUNTIME_API APFGrid : public AActor
 {
@@ -37,10 +47,12 @@ public:
 	bool SphereTileTrace(const FVector& TileLocation, const ECollisionChannel& InCollisionChannel, EObstacleType& OutObstacleType);
 
 	EObstacleType GetObstacleType(const TWeakObjectPtr<AActor>& InActor) const;
+	void GenerateMapDataFromWorld();
+	void AddTileStruct(const int32& InIndexByX, const int32& InIndexByY, const EObstacleType& InObstacleType, const FVector& InWorldLocation);
 public:
 
 	UPROPERTY(EditInstanceOnly, Category="Settings")
-	FVector GridLocation;
+	FVector GridWorldLocation;
 
 	UPROPERTY(EditInstanceOnly, Category="Settings")
 	FVector2D GridSizeWorld{500.f, 500.f};
@@ -53,4 +65,7 @@ public:
 
 	UPROPERTY(EditInstanceOnly, Category="Debug")
 	FColor GridBoxColor{FColor::Blue};
+
+	UPROPERTY(VisibleAnywhere, Category="Grid")
+	TMap<FVector2D, FTileInfo> Tiles;
 };

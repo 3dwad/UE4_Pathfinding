@@ -11,6 +11,7 @@ enum EObstacleType
 	OT_Complicated UMETA(DisplayName="Complicated"),
 	OT_Difficult UMETA(DisplayName="Difficult"),
 	OT_Impassable UMETA(DisplayName="Impassable"),
+	OT_None UMETA(DisplayName="None"),
 	MAX
 };
 
