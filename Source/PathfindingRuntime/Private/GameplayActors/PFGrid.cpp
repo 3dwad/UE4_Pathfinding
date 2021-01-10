@@ -1,6 +1,6 @@
 #include "PFGrid.h"
 #include "PathfindingRuntime/PathfindingRuntime.h"
-#include "PFObstacleMaster.h"
+#include "PFTileActor.h"
 
 #include "DrawDebugHelpers.h"
 #include "Components/BillboardComponent.h"
@@ -20,6 +20,8 @@ APFGrid::APFGrid()
 void APFGrid::BeginPlay()
 {
 	Super::BeginPlay();
+	GenerateMapDataFromWorld();
+	SpawnTileActors();
 }
 
 void APFGrid::ConstructionScriptLogic()
@@ -41,6 +43,29 @@ void APFGrid::GetGridTileNumber(int32& OutGridTileNumberX, int32& OutGridTileNum
 {
 	OutGridTileNumberX = static_cast<int32>(FMath::RoundToZero((GridSizeWorld / TileSize).X));
 	OutGridTileNumberY = static_cast<int32>(FMath::RoundToZero((GridSizeWorld / TileSize).Y));
+}
+
+void APFGrid::SpawnTileActors()
+{
+	for (auto Element : Tiles)
+	{
+		if (Element.Value.ObstacleType != OT_None)
+		{
+			FActorSpawnParameters SpawnParameters;
+			SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			SpawnParameters.bDeferConstruction = true;
+
+			FTransform SpawnTransform = FTransform(Element.Value.WorldLocation);
+			auto FreshTileActor = GetWorld()->SpawnActor<APFTileActor>(TileActorClass, SpawnTransform, SpawnParameters);
+			if (FreshTileActor)
+			{
+				FreshTileActor->Index = Element.Key;
+				FreshTileActor->GridActor = this;
+
+				FreshTileActor->FinishSpawning(SpawnTransform);
+			}
+		}
+	}
 }
 
 void APFGrid::DrawTile()

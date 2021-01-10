@@ -1,20 +1,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
 #include "GameFramework/Actor.h"
+
+#include "PFObstacleMaster.h"
 #include "PFGrid.generated.h"
 
-enum EObstacleType;
+class APFTileActor;
 
 USTRUCT()
 struct FTileInfo
 {
 	GENERATED_BODY()
 
-	FVector2D Index;
-	FVector WorldLocation;
-	EObstacleType ObstacleType;
+	FVector2D Index{0.f};
+	FVector WorldLocation{0.f};
+	EObstacleType ObstacleType{OT_Normal};
 };
 
 UCLASS()
@@ -41,6 +42,7 @@ public:
 
 	FVector GetGridBottomLeft() const;
 	void GetGridTileNumber(int32& OutGridTileNumberX, int32& OutGridTileNumberY) const;
+	void SpawnTileActors();
 	void DrawTile();
 
 	// Find ground under tile
@@ -62,6 +64,9 @@ public:
 
 	UPROPERTY(EditInstanceOnly, Category="Settings")
 	float TileSizeMinus{5.f};
+
+	UPROPERTY(EditInstanceOnly, Category="Settings")
+	TSubclassOf<APFTileActor> TileActorClass;
 
 	UPROPERTY(EditInstanceOnly, Category="Debug")
 	FColor GridBoxColor{FColor::Blue};
