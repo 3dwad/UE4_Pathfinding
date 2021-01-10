@@ -6,6 +6,7 @@ namespace PFTileActorLocal
 {
 	const FName TileColor = "TileColor";
 	const FName ColorActivation = "ColorActivation";
+	const FName HoveredMultiplier = "HoveredMultiplier";
 }
 
 APFTileActor::APFTileActor()
@@ -30,6 +31,8 @@ void APFTileActor::SetTileColor()
 	FColor TileColor = FColor::Green;
 	bool bIsColorActivation = true;
 
+	const float HoveredColorMultiplier = bHovered ? 3.f : 1.f;
+
 	switch (GetTileData().ObstacleType)
 	{
 	case OT_Complicated:
@@ -51,16 +54,19 @@ void APFTileActor::SetTileColor()
 
 	StaticMeshComponent->SetVectorParameterValueOnMaterials(PFTileActorLocal::TileColor, FVector{TileColor});
 	StaticMeshComponent->SetScalarParameterValueOnMaterials(PFTileActorLocal::ColorActivation, bIsColorActivation);
+	StaticMeshComponent->SetScalarParameterValueOnMaterials(PFTileActorLocal::HoveredMultiplier, HoveredColorMultiplier);
 }
 
 void APFTileActor::OnTileHovered(UPrimitiveComponent* InTouchedComponent)
 {
 	bHovered = true;
+	SetTileColor();
 }
 
 void APFTileActor::OnTileUnhovered(UPrimitiveComponent* InTouchedComponent)
 {
 	bHovered = false;
+	SetTileColor();
 }
 
 void APFTileActor::BeginPlay()
